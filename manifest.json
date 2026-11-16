@@ -1,6 +1,6 @@
 {
-  "name": "Cedi Tracker Test",
-  "short_name": "Cedi Tracker Test",
+  "name": "Cedi Tracker",
+  "short_name": "Cedi Tracker",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f6f5",
