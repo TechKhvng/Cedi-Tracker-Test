@@ -336,7 +336,7 @@ $('dcancel').onclick=endDebtEdit;
 function plist(x){
   return (x.pays&&x.pays.length)
     ? '<div class="pl">'+x.pays.map(function(p,i){
-        return '<div><span>'+(p.d||'')+' · '+(x.k==='owe'?'Paid':'Received')+' GH₵'+fmt(p.a)+'</span>'
+        return '<div><span>'+(p.d||'')+' · '+(x.k==='owe'?'Paid':'Received')+' '+money(p.a)+'</span>'
           +'<span><button class="pd" data-ep="'+x.id+'|'+i+'">Edit</button>'
           +'<button data-dp="'+x.id+'|'+i+'" aria-label="Remove payment">×</button></span></div>';
       }).join('')+'</div>'
@@ -351,10 +351,10 @@ function rd(){
    if(x.k==='owe'){po+=paid;if(!x.p)o+=(x.a-paid)}
    else{pm+=paid;if(!x.p)m+=(x.a-paid)}
  });
- $('oweT').textContent='GH₵'+fmt(o);
- $('owedT').textContent='GH₵'+fmt(m);
- if($('poT'))$('poT').textContent='GH₵'+fmt(po);
- if($('pmT'))$('pmT').textContent='GH₵'+fmt(pm);
+ $('oweT').textContent=money(o);
+ $('owedT').textContent=money(m);
+ if($('poT'))$('poT').textContent=money(po);
+ if($('pmT'))$('pmT').textContent=money(pm);
 
  $('dlist').innerHTML=list.length?list.map(function(x){
    var rem=x.a-paidOf(x);
@@ -384,17 +384,21 @@ function rd(){
  document.querySelectorAll('[data-ep]').forEach(function(b){b.onclick=function(){
   var q=b.dataset.ep.split('|');
   debts.forEach(function(x){if(String(x.id)===q.at(0)){
-    var p=x.pays[+q.at(1)];if(!p)return;
+    var p=x.pays.at(+q.at(1));if(!p)return;
     var others=paidOf(x)-p.a,max=x.a-others;
-    var nv=parseFloat(prompt('Edit payment amount (max GH₵'+fmt(max)+'):',p.a));
+    var nv=parseFloat(prompt('Edit payment amount (max '+money(max)+'):',p.a));
     if(!(nv>0))return;
     if(nv>max)nv=max;
     p.a=nv;
     if(x.a-paidOf(x)<=0.005){x.p=true;x.pd=today()}else{x.p=false;x.pd=''}
   }});dsave();rd()}});
- document.querySelectorAll('[data-dp]').forEach(function(b){b.onclick=function(){var q=b.dataset.dp.split('|');debts.forEach(function(x){if(String(x.id)===q[0]){x.pays.splice(+q[1],1);if(x.p&&x.a-paidOf(x)>0.005){x.p=false;x.pd=''}}});dsave();rd()}});
- document.querySelectorAll('[data-de]').forEach(function(b){b.onclick=function(){var x=debts.filter(function(y){return String(y.id)===b.dataset.de})[0];if(!x)return;editDebt=x.id;setDtype(x.k);$('dwho').value=x.w;$('damt').value=x.a;$('dnote').value=x.n||'';$('ddue').value=x.d||'';$('dsave').textContent='Save changes';$('dcancel').hidden=false;$('dwho').focus();$('dwho').scrollIntoView({behavior:'smooth',block:'center'})}});
- document.querySelectorAll('[data-x]').forEach(function(b){b.onclick=function(){debts=debts.filter(function(x){return String(x.id)!==b.dataset.x});dsave();rd()}});
+ document.querySelectorAll('[data-dp]').forEach(function(b){b.onclick=function(){
+  if(!confirm('Remove this recorded payment?'))return;
+  var q=b.dataset.dp.split('|');debts.forEach(function(x){if(String(x.id)===q.at(0)){x.pays.splice(+q.at(1),1);if(x.p&&x.a-paidOf(x)>0.005){x.p=false;x.pd=''}}});dsave();rd()}});
+ document.querySelectorAll('[data-de]').forEach(function(b){b.onclick=function(){var x=debts.filter(function(y){return String(y.id)===b.dataset.de}).at(0);if(!x)return;editDebt=x.id;setDtype(x.k);$('dwho').value=x.w;$('damt').value=x.a;$('dnote').value=x.n||'';$('ddue').value=x.d||'';$('dsave').textContent='Save changes';$('dcancel').hidden=false;$('dwho').focus();$('dwho').scrollIntoView({behavior:'smooth',block:'center'})}});
+ document.querySelectorAll('[data-x]').forEach(function(b){b.onclick=function(){
+  if(!confirm('Delete this debt record?'))return;
+  debts=debts.filter(function(x){return String(x.id)!==b.dataset.x});dsave();rd()}});
  rs();
 }
 function paidAmt(x){return (x.p&&!(x.pays&&x.pays.length))?x.a:paidOf(x)}
@@ -407,118 +411,42 @@ function oneStmt(kind,g){
  L.push('Name: '+g.name,'Date: '+today(),'','Amounts:');
  g.items.forEach(function(x,i){
   tot+=x.a;paid+=paidAmt(x);
-  L.push((i+1)+'. GH₵'+fmt(x.a)+' - '+(x.n||'No description')+' (added '+dstr(x.id)+(x.d?', due '+x.d:'')+')');
+  L.push((i+1)+'. '+money(x.a)+' - '+(x.n||'No description')+' (added '+dstr(x.id)+(x.d?', due '+x.d:'')+')');
   if(x.pays&&x.pays.length)x.pays.forEach(function(p){pays.push({d:p.d,a:p.a,n:x.n})});
   else if(x.p)pays.push({d:x.pd||'',a:x.a,n:x.n});
  });
- L.push('','Total amount: GH₵'+fmt(tot));
- if(pays.length){L.push('','Payments:');pays.forEach(function(p){L.push('- '+(p.d||'date not recorded')+': GH₵'+fmt(p.a)+(p.n?' ('+p.n+')':''))});L.push('Total paid: GH₵'+fmt(paid))}
- L.push('','BALANCE DUE: GH₵'+fmt(tot-paid));
+ L.push('','Total amount: '+money(tot));
+ if(pays.length){L.push('','Payments:');pays.forEach(function(p){L.push('- '+(p.d||'date not recorded')+': '+money(p.a)+(p.n?' ('+p.n+')':''))});L.push('Total paid: '+money(paid))}
+ L.push('','BALANCE DUE: '+money(tot-paid));
  return L.join('\n');
 }
 function showStmt(kind,gs,all){
  var t;
- if(!all)t=oneStmt(kind,gs[0]);
+ if(!all)t=oneStmt(kind,gs.at(0));
  else{var L=[kind==='owe'?'SUMMARY: PEOPLE I OWE':'SUMMARY: PEOPLE WHO OWE ME','Date: '+today(),''],sum=0;
-  gs.forEach(function(g){var b=balOf(g.items);sum+=b;L.push(g.name+': GH₵'+fmt(b))});
-  L.push('','TOTAL: GH₵'+fmt(sum),'','----------------','');
+  gs.forEach(function(g){var b=balOf(g.items);sum+=b;L.push(g.name+': '+money(b))});
+  L.push('','TOTAL: '+money(sum),'','----------------','');
   t=L.join('\n')+gs.map(function(g){return oneStmt(kind,g)}).join('\n\n----------------\n\n')}
  cur={kind:kind,gs:gs,all:all};$('stxt').value=t;$('smsg').textContent='';$('stmt').hidden=false;$('stmt').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function rs(){
  [['owe','sOwe'],['owed','sOwed']].forEach(function(c){
-  var gs=groupBy(c[0]),h='';
-  gs.forEach(function(g,i){var b=balOf(g.items);h+='<div class="row"><span class="nm">'+esc(g.name)+'<small>'+g.items.length+(g.items.length>1?' amounts':' amount')+(b<=0.005?' · Settled':'')+'</small></span><span><b>'+fmt(b)+'</b><button class="pd" data-s="'+c[0]+'|'+i+'">Export</button></span></div>'});
-  if(gs.length)h+='<button class="pd" style="margin-top:10px;margin-bottom:8px" data-s="'+c[0]+'|all">Export all</button>';
-  $(c[1]).innerHTML=h||'<p class="empty">No one yet.</p>';
+  var gs=groupBy(c.at(0)),h='';
+  gs.forEach(function(g,i){var b=balOf(g.items);h+='<div class="row"><span class="nm">'+esc(g.name)+'<small>'+g.items.length+(g.items.length>1?' amounts':' amount')+(b<=0.005?' · Settled':'')+'</small></span><span><b>'+fmt(b)+'</b><button class="pd" data-s="'+c.at(0)+'|'+i+'">Export</button></span></div>'});
+  if(gs.length)h+='<button class="pd" style="margin-top:10px;margin-bottom:8px" data-s="'+c.at(0)+'|all">Export all</button>';
+  $(c.at(1)).innerHTML=h||'<p class="empty">No one yet.</p>';
  });
- document.querySelectorAll('[data-s]').forEach(function(b){b.onclick=function(){var p=b.dataset.s.split('|'),gs=groupBy(p[0]);showStmt(p[0],p[1]==='all'?gs:[gs[+p[1]]],p[1]==='all')}});
+ document.querySelectorAll('[data-s]').forEach(function(b){b.onclick=function(){var p=b.dataset.s.split('|'),gs=groupBy(p.at(0));showStmt(p.at(0),p.at(1)==='all'?gs:[gs.at(+p.at(1))],p.at(1)==='all')}});
 }
 var cur=null,DL=null;
 DL={save:function(o){return new Promise(function(res,rej){try{var b=new Blob([o.data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=o.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);res({status:'saved'})}catch(e){rej({code:'unavailable'})}})}};
 if(typeof XLSX!=='undefined'){$('sxl').hidden=false;$('mxl').hidden=false;$('pxl').hidden=false;}
 function shRows(kind,g){
- var R=[[kind==='owe'?'Account statement: what I owe you':'Account statement: what you owe me'],['Name',g.name],['Date',today()],[],['#','Description','Date added','Due date','Amount (GH₵)']],tot=0,paid=0,pays=[];
+ var R=[[kind==='owe'?'Account statement: what I owe you':'Account statement: what you owe me'],['Name',g.name],['Date',today()],[],['#','Description','Date added','Due date','Amount ('+curSym+')']],tot=0,paid=0,pays=[];
  g.items.forEach(function(x,i){tot+=x.a;paid+=paidAmt(x);R.push([i+1,x.n||'No description',dstr(x.id),x.d||'',x.a]);
   if(x.pays&&x.pays.length)x.pays.forEach(function(p){pays.push([p.d,x.n||'No description',p.a])});
   else if(x.p)pays.push([x.pd||'',x.n||'No description',x.a])});
  R.push(['','','','Total amount',tot],[]);
- if(pays.length){R.push(['Payments'],['Date','Description','Amount (GH₵)']);pays.forEach(function(p){R.push(p)});R.push(['','Total paid',paid],[])}
- R.push(['','','','Balance due',tot-paid]);
- return R;
-}
-function xlsxBuild(){
- var wb=XLSX.utils.book_new(),used={};
- function nm(s){s=(s||'').split('').filter(function(c){return '/?*[]:'.indexOf(c)<0&&c!==String.fromCharCode(92)}).join('').trim().slice(0,27)||'Sheet';var b=s,n=2;while(used[s.toLowerCase()]){s=b+' '+n++}used[s.toLowerCase()]=1;return s}
- function add(rows,name,cols){var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=cols;XLSX.utils.book_append_sheet(wb,ws,nm(name))}
- var cw=[{wch:6},{wch:30},{wch:14},{wch:14},{wch:16}];
- if(cur.all){
-  var S=[[cur.kind==='owe'?'Summary: people I owe':'Summary: people who owe me'],['Date',today()],[],['Name','Total amount (GH₵)','Paid (GH₵)','Balance (GH₵)']],T=0,P=0;
-  cur.gs.forEach(function(g){var t=g.items.reduce(function(s,x){return s+x.a},0),p=g.items.reduce(function(s,x){return s+paidAmt(x)},0);T+=t;P+=p;S.push([g.name,t,p,t-p])});
-  S.push(['Total',T,P,T-P]);
-  add(S,'Summary',[{wch:24},{wch:20},{wch:14},{wch:16}]);
-  cur.gs.forEach(function(g){add(shRows(cur.kind,g),g.name,cw)});
- }else add(shRows(cur.kind,cur.gs[0]),cur.gs[0].name,cw);
- return wb;
-}
-$('sxl').onclick=function(){
- if(!DL||!cur)return;
- try{
-  var out=XLSX.write(xlsxBuild(),{bookType:'xlsx',type:'array'});
-  var fn=cur.all?'statements-'+(cur.kind==='owe'?'i-owe':'owed-to-me'):'statement-'+(cur.gs[0].name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'person');
-  DL.save({filename:fn+'.xlsx',data:out}).then(function(){$('smsg').textContent='Excel file saved.'},function(e){$('smsg').textContent=(e&&e.code==='declined')?'Download cancelled.':'Could not download the file. Use Copy instead.'});
- }catch(e){$('smsg').textContent='Excel export is not available right now. Use Copy instead.'}
-};
-function wkStart(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()-((d.getDay()+6)%7));return d}
-function wkEnd(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+6)}
-function wkLabel(d){var f=function(x){return x.toLocaleDateString('en-GB',{day:'numeric',month:'short'})};return f(d)+' to '+f(wkEnd(d))}
-function wkGroup(arr){var g={};arr.forEach(function(x){var d=wkStart(x.d),k=dstr(d.getTime());if(!g[k])g[k]={d:d,inc:0,exp:0};if(x.t==='in')g[k].inc+=x.a;else g[k].exp+=x.a});return Object.keys(g).sort().map(function(k){return g[k]})}
-function wk(mi){
- var ws=wkGroup(mi),mx=0;ws.forEach(function(w){if(w.exp>mx)mx=w.exp});
- $('weeks').innerHTML=ws.length?ws.map(function(w){return '<div class="bar">'+wkLabel(w.d)+' · Spent GH₵'+fmt(w.exp)+(w.inc?' · Received GH₵'+fmt(w.inc):'')+'<i style="width:'+(mx?Math.round(w.exp/mx*100):0)+'%"></i></div>'}).join('')+'<p class="empty">Weeks run Monday to Sunday. Only entries in the selected month are counted.</p>':'<p class="empty">Add an entry to see your weekly spending.</p>';
-}
-function fillYears(){
- var ys={},cy=today().slice(0,4);ys[cy]=1;
- items.forEach(function(x){ys[x.d.slice(0,4)]=1});
- (debts||[]).forEach(function(x){ys[dstr(x.id).slice(0,4)]=1;(x.pays||[]).forEach(function(p){if(p.d)ys[p.d.slice(0,4)]=1})});
- var sel=$('pyr'),old=sel.value||cy;
- sel.innerHTML=Object.keys(ys).sort().reverse().map(function(y){return '<option'+(y===old?' selected':'')+'>'+y+'</option>'}).join('');
-}
-function expo(label,from,to,fname,msgId){
- if(!DL)return;
- var say=function(t){$(msgId).textContent=t};
- try{
-  var mi=items.filter(function(x){return x.d>=from&&x.d<=to}),inc=0,exp=0,by={},o=0,w=0;
-  mi.forEach(function(x){if(x.t==='in')inc+=x.a;else{exp+=x.a;by[x.c]=(by[x.c]||0)+x.a}});
-  (debts||[]).forEach(function(x){if(!x.p){var r=x.a-paidAmt(x);if(x.k==='owe')o+=r;else w+=r}});
-  var wb=XLSX.utils.book_new();
-  var add=function(rows,name,cols){var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=cols;XLSX.utils.book_append_sheet(wb,ws,name)};
-  add([['Statement: '+label],['Period',from+' to '+to],['Exported',today()],[],['Money in (GH₵)',inc],['Money out (GH₵)',exp],['Balance (GH₵)',inc-exp],['Number of entries',mi.length],[],['Debts, as of '+today()],['Still owed by me (GH₵)',o],['Still owed to me (GH₵)',w]],'Summary',[{wch:28},{wch:22}]);
-  var yr=from.slice(0,4),sm=+from.slice(5,7),em=+to.slice(5,7),B=[['Month','Money in (GH₵)','Money out (GH₵)','Balance (GH₵)']];
-  for(var k=sm;k<=em;k++){var key=yr+'-'+String(k).padStart(2,'0'),a=0,b=0;mi.forEach(function(x){if(x.d.slice(0,7)===key){if(x.t==='in')a+=x.a;else b+=x.a}});B.push([new Date(+yr,k-1,1).toLocaleString('en-GB',{month:'long'}),a,b,a-b])}
-  B.push(['Total',inc,exp,inc-exp]);
-  add(B,'By month',[{wch:16},{wch:16},{wch:16},{wch:16}]);
-  var W=[['Week (Monday to Sunday)','Spent (GH₵)','Received (GH₵)']];
-  wkGroup(mi).forEach(function(g){W.push([dstr(g.d.getTime())+' to '+dstr(wkEnd(g.d).getTime()),g.exp,g.inc])});
-  add(W,'By week',[{wch:26},{wch:14},{wch:16}]);
-  var E=[['Date','Type','Category','Note','Amount (GH₵)']];
-  mi.slice().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0}).forEach(function(x){E.push([x.d,x.t==='in'?'Received':'Spent',x.c,x.n||'',x.a])});
-  E.push([],['','','','Total received',inc],['','','','Total spent',exp]);
-  add(E,'Entries',[{wch:12},{wch:10},{wch:16},{wch:28},{wch:16}]);
-  var C=[['Category','Spent (GH₵)','Share','Monthly budget (GH₵)']];
-  Object.keys(by).sort(function(a,b){return by[b]-by[a]}).forEach(function(k){C.push([k,by[k],(exp?Math.round(by[k]/exp*100):0)+'%',budgets[k]||''])});
-  C.push(['Total',exp,'']);
-  add(C,'Spending by category',[{wch:20},{wch:14},{wch:10},{wch:22}]);
-  var D=[['Person','Direction','Description','Amount (GH₵)','Date added','Due date','Paid (GH₵)','Balance (GH₵)','Status']];
-  (debts||[]).forEach(function(x){var p=paidAmt(x);D.push([x.w,x.k==='owe'?'I owe':'Owes me',x.n||'',x.a,dstr(x.id),x.d||'',p,x.a-p,x.p?'Settled':(p>0?'Part paid':'Unpaid')])});
-  add(D,'Debts',[{wch:20},{wch:10},{wch:26},{wch:14},{wch:12},{wch:12},{wch:12},{wch:14},{wch:11}]);
-  var Pm=[['Date','Person','Direction','Description','Amount (GH₵)']];
-  (debts||[]).forEach(function(x){(x.pays||[]).forEach(function(p){if(p.d&&p.d>=from&&p.d<=to)Pm.push([p.d,x.w,x.k==='owe'?'I paid':'Received',x.n||'',p.a])})});
-  add(Pm,'Debt payments',[{wch:12},{wch:20},{wch:10},{wch:26},{wch:14}]);
-  var out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-  DL.save({filename:fname+'.xlsx',data:out}).then(function(){say('Excel file saved.')},function(e){say((e&&e.code==='declined')?'Download cancelled.':'Could not download the file.')});
- }catch(e){say('Excel export is not available right now.')}
-}
 $('mxl').onclick=function(){var m=viewM;expo($('mon').options[$('mon').selectedIndex].text,m+'-01',m+'-31','statement-'+m,'mmsg')};
 $('pxl').onclick=function(){
  var y=$('pyr').value,p=$('pper').value;
