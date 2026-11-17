@@ -100,16 +100,32 @@ textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px
 </div>
 
 <div class="greet" id="greet" hidden></div>
-<div class="top"><h1 id="ttl">Balance this month</h1><button id="reset">Clear all</button></div>
+<div class="top">
+  <h1 id="ttl">Balance this month</h1>
+  <div style="display:flex;gap:6px;align-items:center">
+    <select id="curSel" class="cur-sel" aria-label="Currency">
+      <option value="GH₵">GH₵</option>
+      <option value="$">$</option>
+      <option value="€">€</option>
+      <option value="£">£</option>
+      <option value="₦">₦</option>
+    </select>
+    <button id="reset">Clear all</button>
+  </div>
+</div>
 <select id="mon" aria-label="Choose month"></select>
 <button class="add" id="mxl" hidden style="margin-bottom:6px">Export this month (Excel)</button><p class="empty" id="mmsg" style="margin-bottom:10px"></p>
-<div class="bal" id="bal">GH₵0.00</div>
+<div class="bal-row">
+  <div class="bal" id="bal">GH₵0.00</div>
+  <button class="eye" id="blurBtn" aria-label="Hide or show balance">👁</button>
+</div>
 <div class="sub"><div><small>Money in</small><b class="in" id="inc">0.00</b></div><div><small>Money out</small><b class="out" id="exp">0.00</b></div></div>
 
 <div class="card">
 <div class="seg"><button data-t="in" class="on">Received</button><button data-t="out">Spent</button></div>
 <input id="amt" type="number" inputmode="decimal" placeholder="Amount (GH₵)" min="0" step="0.01">
 <select id="cat"></select>
+<div id="ccats" style="margin-bottom:8px"></div>
 <div class="pf" id="ncwrap" hidden><input id="ncat" type="text" placeholder="New category name"><button class="pd" id="ncadd">Add</button></div>
 <input id="note" type="text" placeholder="Note (optional)">
 <input id="date" type="date">
@@ -124,6 +140,7 @@ textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px
 <input id="bamt" type="number" inputmode="decimal" placeholder="Monthly budget (GH₵)" min="0" step="0.01">
 <button class="add" id="bsave">Set budget</button>
 <div id="blist" style="margin-top:12px"></div></div>
+<div class="card"><h2>Daily breakdown</h2><div id="days"></div></div>
 <div class="card"><h2>Weekly spending</h2><div id="weeks"></div></div>
 <div class="card"><h2>Entries</h2><div id="list"></div></div>
 
